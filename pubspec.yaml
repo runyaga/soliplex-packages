@@ -1,0 +1,49 @@
+name: soliplex_packages_workspace
+description: Shared packages for Soliplex — completions, scripting, MCP, CLI, TUI.
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+
+workspace:
+  - packages/soliplex_cli
+  - packages/soliplex_completions
+  - packages/soliplex_dataframe
+  - packages/soliplex_interpreter_monty
+  - packages/soliplex_mcp
+  - packages/soliplex_schema
+  - packages/soliplex_scripting
+  - packages/soliplex_tui
+  - packages/soliplex_showcase
+
+dependency_overrides:
+  soliplex_agent:
+    git:
+      url: https://github.com/runyaga/soliplex-agent.git
+      path: packages/soliplex_agent
+  soliplex_client:
+    git:
+      url: https://github.com/runyaga/soliplex-agent.git
+      path: packages/soliplex_client
+  soliplex_logging:
+    git:
+      url: https://github.com/runyaga/soliplex-agent.git
+      path: packages/soliplex_logging
+  dart_monty_ffi:
+    git:
+      url: https://github.com/runyaga/dart_monty.git
+      ref: main
+      path: packages/dart_monty_ffi
+  dart_monty_platform_interface:
+    git:
+      url: https://github.com/runyaga/dart_monty.git
+      ref: main
+      path: packages/dart_monty_platform_interface
+  dart_monty_wasm:
+    git:
+      url: https://github.com/runyaga/dart_monty.git
+      ref: main
+      path: packages/dart_monty_wasm
+  struct_log:
+    git:
+      url: https://github.com/runyaga/struct_log.git
