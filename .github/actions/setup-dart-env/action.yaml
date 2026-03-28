@@ -1,0 +1,24 @@
+name: "Setup Dart Environment"
+description: "Sets up Dart SDK, caches pub dependencies, and runs pub get"
+inputs:
+  working-directory:
+    description: "Directory to run pub get in"
+    default: "."
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Dart SDK
+      uses: dart-lang/setup-dart@v1
+
+    - name: Cache pub dependencies
+      uses: actions/cache@v5
+      with:
+        path: ~/.pub-cache
+        key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-pub-
+
+    - name: Install dependencies
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: dart pub get

@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "LICENSE"
+  pull_request:
+    branches: [main, 'feat/**', 'fix/**', 'refactor/**', 'chore/**']
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+      - "LICENSE"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Detect which packages changed to skip unnecessary test jobs.
+  #
+  # Dependency graph (transitive):
+  #   soliplex_completions       → soliplex_client (git: soliplex-agent)
+  #   soliplex_dataframe         (leaf)
+  #   soliplex_interpreter_monty (leaf, needs dart_monty native hooks)
+  #   soliplex_mcp               → completions
+  #   soliplex_schema            (leaf)
+  #   soliplex_scripting         → agent, interpreter_monty, dataframe (needs native hooks)
+  #   soliplex_cli               → agent, completions, scripting (needs native hooks)
+  #   soliplex_tui               → agent, completions, scripting (needs native hooks)
+  #   soliplex_showcase          → agent (needs evaluation)
+  #
+  # Excluded from CI (need dart_monty native build hooks):
+  #   soliplex_interpreter_monty, soliplex_scripting, soliplex_cli, soliplex_tui
+  # ---------------------------------------------------------------------------
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            soliplex_completions:
+              - 'packages/soliplex_completions/**'
+            soliplex_dataframe:
+              - 'packages/soliplex_dataframe/**'
+            soliplex_mcp:
+              - 'packages/soliplex_mcp/**'
+              - 'packages/soliplex_completions/**'
+            soliplex_schema:
+              - 'packages/soliplex_schema/**'
+
+      - name: Build test matrix from changed paths
+        id: set-matrix
+        run: |
+          MATRIX='{"target":[]}'
+
+          add_target() {
+            local name="$1" path="$2"
+            MATRIX=$(echo "$MATRIX" | jq --arg n "$name" --arg p "$path" \
+              '.target += [{"name":$n,"path":$p}]')
+          }
+
+          [ "${{ steps.filter.outputs.soliplex_completions }}" = "true" ] && \
+            add_target "soliplex_completions" "packages/soliplex_completions"
+          [ "${{ steps.filter.outputs.soliplex_dataframe }}" = "true" ] && \
+            add_target "soliplex_dataframe" "packages/soliplex_dataframe"
+          [ "${{ steps.filter.outputs.soliplex_mcp }}" = "true" ] && \
+            add_target "soliplex_mcp" "packages/soliplex_mcp"
+          [ "${{ steps.filter.outputs.soliplex_schema }}" = "true" ] && \
+            add_target "soliplex_schema" "packages/soliplex_schema"
+
+          TARGETS=$(echo "$MATRIX" | jq '.target | length')
+          echo "matrix=$(echo "$MATRIX" | jq -c)" >> "$GITHUB_OUTPUT"
+          if [ "$TARGETS" -gt 0 ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "### Test matrix ($TARGETS targets)" >> "$GITHUB_STEP_SUMMARY"
+          echo "$MATRIX" | jq -r '.target[].name' | while read -r name; do
+            echo "- $name" >> "$GITHUB_STEP_SUMMARY"
+          done
+          if [ "$TARGETS" -eq 0 ]; then
+            echo "_No test targets affected by this change._" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  test:
+    needs: [changes]
+    if: needs.changes.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Dart environment
+        uses: ./.github/actions/setup-dart-env
+
+      - name: Check formatting
+        working-directory: ${{ matrix.target.path }}
+        run: |
+          find . -name "*.dart" \
+            -not -path "./build/*" \
+            -print0 | xargs -0 dart format --set-exit-if-changed
+
+      - name: Analyze code
+        working-directory: ${{ matrix.target.path }}
+        run: dart analyze --fatal-infos
+
+      - name: Generate random seed
+        id: seed
+        run: echo "value=$RANDOM" >> "$GITHUB_OUTPUT"
+
+      - name: Run tests
+        working-directory: ${{ matrix.target.path }}
+        run: |
+          SEED="${{ steps.seed.outputs.value }}"
+          echo "::notice::Test ordering seed: $SEED"
+          dart test --test-randomize-ordering-seed="$SEED" \
+            --exclude-tags integration
+
+      - name: Report seed on failure
+        if: failure()
+        run: |
+          SEED="${{ steps.seed.outputs.value }}"
+          echo "::error::Tests failed with ordering seed: $SEED"
+          echo "Reproduce with: --test-randomize-ordering-seed=$SEED"
