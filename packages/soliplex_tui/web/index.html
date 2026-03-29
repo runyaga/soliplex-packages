@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Soliplex TUI</title>
+
+  <!-- xterm.js (vendored locally to avoid CDN tracking-prevention blocks) -->
+  <link rel="stylesheet" href="vendor/xterm.css" />
+  <script src="vendor/xterm.js"></script>
+  <script src="vendor/xterm-addon-fit.js"></script>
+
+  <!-- Monty Python WASM bridge (must load before app) -->
+  <script src="vendor/dart_monty_bridge.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; background: #1e1e1e; overflow: hidden; }
+    #terminal {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="terminal"></div>
+
+  <script src="terminal_host.js"></script>
+  <script>
+    (async () => {
+      const host = new NoctermTerminalHost('terminal');
+      await host.initialize();
+      await host.loadApp('main.dart.js');
+    })();
+  </script>
+</body>
+</html>
