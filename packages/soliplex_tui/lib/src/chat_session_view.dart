@@ -60,7 +60,12 @@ class ChatSessionView {
       final state = session.runState.value;
       Loggers.chat.trace('RunState: ${state.runtimeType}');
       _runState.value = state;
-      _messages.value = _extractMessages(state);
+      final msgs = _extractMessages(state);
+      // Preserve existing messages during session transition to prevent
+      // the scroll position from resetting when the list briefly empties.
+      if (msgs.isNotEmpty || _messages.value.isEmpty) {
+        _messages.value = msgs;
+      }
       _streaming.value = _extractStreaming(state);
       _reasoningText.value = _extractReasoningText(state);
       _pendingTools.value = _extractPendingTools(state);
