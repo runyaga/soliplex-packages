@@ -1,5 +1,5 @@
 import 'package:dart_monty/dart_monty.dart';
-import 'package:dart_monty_platform_interface/dart_monty_testing.dart';
+import 'package:dart_monty/dart_monty_testing.dart';
 import 'package:soliplex_interpreter_monty/src/schema_executor.dart';
 import 'package:test/test.dart';
 
@@ -52,12 +52,12 @@ void main() {
     test('returns validated dict from Python function', () async {
       executor.loadSchemas({'tool': _toolValidatorCode});
 
-      mock.runResult = const MontyResult(
-        value: {
+      mock.runResult = MontyResult(
+        value: MontyValue.fromDart(<String, Object?>{
           'kind': 'search',
           'tool_name': 'tools.search',
           'allow_mcp': false,
-        },
+        }),
         usage: _usage,
       );
 
@@ -75,29 +75,29 @@ void main() {
     test('composes correct Python code', () async {
       executor.loadSchemas({'tool': _toolValidatorCode});
 
-      mock.runResult = const MontyResult(
-        value: <String, Object?>{},
+      mock.runResult = MontyResult(
+        value: MontyValue.fromDart(<String, Object?>{}),
         usage: _usage,
       );
 
       await executor.validate('tool', <String, Object?>{});
 
-      expect(mock.lastRunCode, contains('raw = {}'));
-      expect(mock.lastRunCode, contains('def validate_tool(raw):'));
-      expect(mock.lastRunCode, contains('validate_tool(raw)'));
+      expect(mock.history.lastRunCode, contains('raw = {}'));
+      expect(mock.history.lastRunCode, contains('def validate_tool(raw):'));
+      expect(mock.history.lastRunCode, contains('validate_tool(raw)'));
     });
 
     test('inlines raw JSON as Python literal', () async {
       executor.loadSchemas({'tool': _toolValidatorCode});
 
-      mock.runResult = const MontyResult(
-        value: <String, Object?>{},
+      mock.runResult = MontyResult(
+        value: MontyValue.fromDart(<String, Object?>{}),
         usage: _usage,
       );
 
       await executor.validate('tool', <String, Object?>{'kind': 'test'});
 
-      expect(mock.lastRunCode, contains("raw = {'kind': 'test'}"));
+      expect(mock.history.lastRunCode, contains("raw = {'kind': 'test'}"));
     });
 
     test('throws ArgumentError for unknown schema', () async {
@@ -111,6 +111,7 @@ void main() {
       executor.loadSchemas({'tool': _toolValidatorCode});
 
       mock.runResult = const MontyResult(
+        value: MontyNone(),
         error: MontyException(message: 'NameError: raw is not defined'),
         usage: _usage,
       );
@@ -134,8 +135,8 @@ def validate_room(raw):
 ''',
       });
 
-      mock.runResult = const MontyResult(
-        value: {'name': 'general'},
+      mock.runResult = MontyResult(
+        value: MontyValue.fromDart(<String, Object?>{'name': 'general'}),
         usage: _usage,
       );
 
@@ -143,8 +144,8 @@ def validate_room(raw):
       expect(result['name'], 'general');
 
       // Verify the room schema code was used, not tool
-      expect(mock.lastRunCode, contains('validate_room(raw)'));
-      expect(mock.lastRunCode, isNot(contains('validate_tool')));
+      expect(mock.history.lastRunCode, contains('validate_room(raw)'));
+      expect(mock.history.lastRunCode, isNot(contains('validate_tool')));
     });
   });
 }

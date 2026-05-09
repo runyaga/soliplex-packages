@@ -29,21 +29,6 @@ dependency_overrides:
     git:
       url: https://github.com/runyaga/soliplex-agent.git
       path: packages/soliplex_logging
-  dart_monty_ffi:
-    git:
-      url: https://github.com/runyaga/dart_monty.git
-      ref: main
-      path: packages/dart_monty_ffi
-  dart_monty_platform_interface:
-    git:
-      url: https://github.com/runyaga/dart_monty.git
-      ref: main
-      path: packages/dart_monty_platform_interface
-  dart_monty_wasm:
-    git:
-      url: https://github.com/runyaga/dart_monty.git
-      ref: main
-      path: packages/dart_monty_wasm
   struct_log:
     git:
       url: https://github.com/runyaga/struct_log.git

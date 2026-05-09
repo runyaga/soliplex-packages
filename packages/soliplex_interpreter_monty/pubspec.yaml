@@ -8,10 +8,7 @@ environment:
   sdk: ^3.6.0
 
 dependencies:
-  dart_monty:
-    git:
-      url: https://github.com/runyaga/dart_monty.git
-      ref: main
+  dart_monty: ^0.17.1
   meta: ^1.11.0
 dev_dependencies:
   mocktail: ^1.0.4

@@ -1,33 +1,8 @@
 import 'dart:developer' as developer;
 
-import 'package:dart_monty_bridge/dart_monty_bridge.dart'
+import 'package:dart_monty/dart_monty_bridge.dart'
     show HostFunctionSchema, HostParam, HostParamType;
-import 'package:meta/meta.dart';
-
-/// Pairs the Monty function name with the ToolRegistry lookup name.
-///
-/// - [pythonName]: The `kind` field — what Python calls
-///   (e.g. `get_current_datetime`)
-/// - [registryName]: The `tool_name` field — the tool protocol lookup key
-///   (e.g. `soliplex.tools.get_current_datetime`)
-/// - [schema]: The [HostFunctionSchema] registered with the bridge
-@immutable
-class ToolNameMapping {
-  const ToolNameMapping({
-    required this.pythonName,
-    required this.registryName,
-    required this.schema,
-  });
-
-  /// Function name callable from Python code.
-  final String pythonName;
-
-  /// Tool name used for ToolRegistry lookup.
-  final String registryName;
-
-  /// Host function schema for the bridge.
-  final HostFunctionSchema schema;
-}
+import 'package:soliplex_interpreter_monty/src/bridge/tool_name_mapping.dart';
 
 /// Converts a raw tool definition map to a [HostFunctionSchema].
 ///
@@ -113,7 +88,7 @@ List<HostParam> _parseParams(Map<String, dynamic>? extraParams) {
       extraParams['properties'] as Map<String, dynamic>? ?? const {};
   if (properties.isEmpty) return const [];
 
-  final requiredList = extraParams['required'] as List<dynamic>? ?? const [];
+  final requiredList = extraParams['required'] as List<Object?>? ?? const [];
   final requiredSet = requiredList.map((e) => e.toString()).toSet();
 
   return jsonSchemaPropsToParams(properties, requiredSet);
@@ -132,6 +107,7 @@ HostParamType _jsonSchemaTypeToParamType(String type) {
           'Unknown JSON Schema type "$type", defaulting to string',
           name: 'ToolDefinitionConverter',
         );
+
         return HostParamType.string;
       }(),
   };
