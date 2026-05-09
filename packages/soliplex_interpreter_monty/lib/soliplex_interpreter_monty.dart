@@ -1,34 +1,30 @@
 /// Bridge Monty sandboxed Python interpreter into Soliplex (pure Dart).
 library;
 
-// Re-export bridge infrastructure from dart_monty_bridge.
-export 'package:dart_monty_bridge/dart_monty_bridge.dart'
+// Re-export bridge infrastructure from dart_monty's bridge layer.
+export 'package:dart_monty/dart_monty_bridge.dart'
     show
+        BridgeCallFinished,
+        BridgeCallStarted,
+        BridgeChildEvent,
         BridgeEvent,
-        BridgeEventLoopResumed,
-        BridgeEventLoopWaiting,
+        BridgeFunctionCallArgs,
+        BridgeFunctionCallEnd,
+        BridgeFunctionCallResult,
+        BridgeFunctionCallStart,
+        BridgeFunctionEmit,
+        BridgeOsCallResult,
+        BridgeOsCallStart,
         BridgeRunError,
         BridgeRunFinished,
         BridgeRunStarted,
-        BridgeStepFinished,
-        BridgeStepStarted,
-        BridgeTextContent,
-        BridgeTextEnd,
-        BridgeTextStart,
-        BridgeToolCallArgs,
-        BridgeToolCallEnd,
-        BridgeToolCallResult,
-        BridgeToolCallStart,
-        BridgeUiRendered,
-        DefaultMontyBridge,
-        EventLoopBridge,
         HostFunction,
         HostFunctionHandler,
         HostFunctionSchema,
         HostParam,
         HostParamType,
         MontyBridge,
-        MontyPlugin;
+        MontyExtension;
 
 // Soliplex-only types.
 export 'src/bridge/tool_definition_converter.dart';

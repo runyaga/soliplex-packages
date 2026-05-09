@@ -1,31 +1,34 @@
-/// Illustrates how to create a `DefaultMontyBridge` and execute Python code.
+/// Runs a trivial Python expression through `MontyExecutionService` and
+/// prints the result.
 ///
-/// This example is illustrative -- running it requires a `MontyPlatform`
-/// implementation backed by the Monty WASM runtime.
+/// Loads the real Monty platform via `dart_monty`'s default factory, so it
+/// requires the FFI native binding (or WASM on the web). Pure Dart only —
+/// no `dart:io` so this example also runs on the web.
 library;
 
-void main() {
-  // 1. Create a bridge (requires a MontyPlatform implementation).
-  // final bridge = DefaultMontyBridge(platform: myMontyPlatform);
+import 'package:soliplex_interpreter_monty/soliplex_interpreter_monty.dart';
 
-  // 2. Optionally register host functions so Python can call Dart.
-  // bridge.register(myHostFunction);
+Future<void> main() async {
+  final service = MontyExecutionService(limits: MontyLimitsDefaults.tool);
 
-  // 3. Execute Python code and listen for bridge events.
-  // final events = bridge.execute('print("Hello from Monty!")');
-  // await for (final event in events) {
-  //   switch (event) {
-  //     case BridgeTextContent(:final text):
-  //       print('Output: $text');
-  //     case BridgeRunFinished():
-  //       print('Execution complete.');
-  //     default:
-  //       break;
-  //   }
-  // }
+  try {
+    final events =
+        await service.execute('print("Hello from Monty!")\n2 + 40').toList();
 
-  // 4. For simple execution, MontyExecutionService wraps the loop:
-  // final service = MontyExecutionService(bridge: bridge);
-  // final result = await service.execute('2 + 2');
-  // print('Result: ${result.returnValue}');
+    for (final event in events) {
+      switch (event) {
+        case ConsoleOutput(:final text):
+          print('print: ${text.trimRight()}');
+        case ConsoleComplete(:final result):
+          print(
+            'return value: ${result.value} '
+            '(usage: ${result.usage.timeElapsedMs}ms)',
+          );
+        case ConsoleError(:final error):
+          print('error: ${error.message}');
+      }
+    }
+  } finally {
+    service.dispose();
+  }
 }

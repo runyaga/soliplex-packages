@@ -34,7 +34,7 @@ class MontyExecutionService {
   bool _isExecuting = false;
   bool _isDisposed = false;
 
-  MontyPlatform get _platform => _explicitPlatform ?? Monty();
+  MontyPlatform get _platform => _explicitPlatform ?? createPlatformMonty();
 
   /// Whether an execution is currently in progress.
   bool get isExecuting => _isExecuting;
@@ -79,9 +79,14 @@ class MontyExecutionService {
   ) async {
     final wrappedCode = '$_printPreamble\n$code';
     final output = StringBuffer();
+    // Each `start`/`resume` cycle must run against the *same* platform
+    // instance — the unconfigured getter would otherwise mint a fresh one
+    // each call and lose `start()`'s active-state lifecycle.
+    final platform = _platform;
+    final ownsPlatform = _explicitPlatform == null;
 
     try {
-      var progress = await _platform.start(
+      var progress = await platform.start(
         wrappedCode,
         externalFunctions: const [_consoleWriteFn],
         limits: _limits,
@@ -89,27 +94,48 @@ class MontyExecutionService {
 
       while (true) {
         switch (progress) {
-          case MontyPending(:final functionName, :final arguments):
-            if (functionName == _consoleWriteFn && arguments.isNotEmpty) {
-              final text = arguments.first.toString();
+          case MontyPending(:final functionName, :final args):
+            if (functionName == _consoleWriteFn && args.isNotEmpty) {
+              final text = args.first.dartValue?.toString() ?? '';
               output.write(text);
               controller.add(ConsoleOutput(text));
             }
-            progress = await _platform.resume(null);
+            progress = await platform.resume(null);
 
           case MontyResolveFutures():
-            progress = await _platform.resume(null);
+            progress = await platform.resume(null);
+
+          case MontyOsCall():
+            // OS calls are not handled by this play-button service —
+            // resume with a PermissionError-like message so Python sees
+            // the failure and either handles it or surfaces it.
+            progress = await platform.resumeWithError(
+              'OS calls are not permitted in MontyExecutionService',
+            );
+
+          case MontyNameLookup(:final variableName):
+            progress = await platform.resumeNameLookupUndefined(variableName);
 
           case MontyComplete(:final result):
+            // dart_monty 0.17.1 buffers print output on `result.printOutput`
+            // rather than yielding `__console_write__` host calls — surface
+            // any buffered text as `ConsoleOutput` before completing so
+            // callers see it once.
+            final printOutput = result.printOutput;
+            if (printOutput != null && printOutput.isNotEmpty) {
+              output.write(printOutput);
+              controller.add(ConsoleOutput(printOutput));
+            }
+
             final error = result.error;
             if (error != null) {
               controller.add(ConsoleError(error));
             } else {
-              final value = result.value;
+              final dartValue = result.value.dartValue;
               controller.add(
                 ConsoleComplete(
                   ExecutionResult(
-                    value: value?.toString(),
+                    value: dartValue?.toString(),
                     usage: result.usage,
                     output: output.toString(),
                   ),
@@ -120,15 +146,16 @@ class MontyExecutionService {
             return;
         }
       }
-    } on MontyCancelledError {
-      // Supervisor-initiated cancel — not a script error.
-      return;
     } on MontyError catch (e) {
       controller.addError(e);
     } on MontyException catch (e) {
       controller.add(ConsoleError(e));
     } on Exception catch (e) {
       controller.addError(e);
+    } finally {
+      if (ownsPlatform) {
+        await platform.dispose();
+      }
     }
   }
 }
