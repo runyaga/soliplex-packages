@@ -151,9 +151,9 @@ void main() {
       final params = jsonSchemaPropsToParams(properties, {'a'});
 
       expect(params, hasLength(2));
-      expect(params[0].name, 'a');
-      expect(params[0].isRequired, isTrue);
-      expect(params[0].description, 'First');
+      expect(params.first.name, 'a');
+      expect(params.first.isRequired, isTrue);
+      expect(params.first.description, 'First');
       expect(params[1].name, 'b');
       expect(params[1].isRequired, isFalse);
       expect(params[1].description, isNull);
@@ -191,9 +191,9 @@ void main() {
       final mappings = roomToolDefsToMappings(toolDefs);
 
       expect(mappings, hasLength(2));
-      expect(mappings[0].pythonName, 'get_time');
-      expect(mappings[0].registryName, 'soliplex.tools.get_time');
-      expect(mappings[0].schema.params, isEmpty);
+      expect(mappings.first.pythonName, 'get_time');
+      expect(mappings.first.registryName, 'soliplex.tools.get_time');
+      expect(mappings.first.schema.params, isEmpty);
 
       expect(mappings[1].pythonName, 'search');
       expect(mappings[1].registryName, 'soliplex.tools.search');
@@ -240,7 +240,7 @@ void main() {
       final mappings = roomToolDefsToMappings(toolDefs);
 
       expect(mappings, hasLength(2));
-      expect(mappings[0].pythonName, 'valid');
+      expect(mappings.first.pythonName, 'valid');
       expect(mappings[1].pythonName, 'also_valid');
     });
   });

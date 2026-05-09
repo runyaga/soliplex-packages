@@ -28,6 +28,7 @@ export 'package:dart_monty/dart_monty_bridge.dart'
 
 // Soliplex-only types.
 export 'src/bridge/tool_definition_converter.dart';
+export 'src/bridge/tool_name_mapping.dart';
 export 'src/console_event.dart';
 export 'src/execution_result.dart';
 export 'src/input_variable.dart';

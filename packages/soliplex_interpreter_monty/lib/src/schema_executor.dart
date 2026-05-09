@@ -10,6 +10,7 @@ String _toPythonLiteral(Object? value) {
         .replaceAll(r'\', r'\\')
         .replaceAll("'", r"\'")
         .replaceAll('\n', r'\n');
+
     return "'$escaped'";
   }
   if (value is List) {
@@ -19,8 +20,10 @@ String _toPythonLiteral(Object? value) {
     final entries = value.entries
         .map((e) => '${_toPythonLiteral(e.key)}: ${_toPythonLiteral(e.value)}')
         .join(', ');
+
     return '{$entries}';
   }
+
   return "'$value'";
 }
 
@@ -77,10 +80,18 @@ class SchemaExecutor {
 
     final result = await _platform.run(code);
 
-    if (result.isError) {
-      throw result.error!;
+    final error = result.error;
+    if (error != null) {
+      throw error;
     }
 
-    return result.value.dartValue! as Map<String, Object?>;
+    final dartValue = result.value.dartValue;
+    if (dartValue is! Map<String, Object?>) {
+      throw StateError(
+        'Schema "$schemaName" returned ${dartValue.runtimeType}, expected Map.',
+      );
+    }
+
+    return dartValue;
   }
 }
